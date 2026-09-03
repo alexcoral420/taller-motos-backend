@@ -1,0 +1,55 @@
+# ============================================================
+#  .gitignore — Backend Taller de Motos (Python / FastAPI)
+# ============================================================
+
+# --- SECRETOS: NUNCA subir al repo ---
+.env
+.env.*
+!.env.example          # sí se versiona la PLANTILLA (sin valores reales)
+*.pem
+*.key
+
+# --- Entornos virtuales ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Bytecode / cache de Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Herramientas / testing ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Empaquetado / distribución ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Alembic: se versiona el código de migraciones,
+#     pero no bases locales sueltas ---
+*.sqlite3
+*.db
+
+# --- IDE / editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/
