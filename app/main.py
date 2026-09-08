@@ -25,6 +25,13 @@ from slowapi.util import get_remote_address
 from app.api.public.router import public_router
 from app.core.config import settings
 
+# Importar todos los modelos para que SQLAlchemy registre las tablas y
+# resuelva las llaves foráneas entre ellas al arrancar.
+from app.modules.clientes.model import Cliente
+from app.modules.catalogo.model import CatalogoServicio
+from app.modules.cotizaciones.model import Cotizacion, CotizacionItem
+from app.modules.contacto.model import MensajeContacto
+
 # ----------------------------------------------------------------------------
 #  Rate limiter (capa pública)
 #  Identifica al visitante por su IP y aplica el límite de PUBLIC_RATE_LIMIT

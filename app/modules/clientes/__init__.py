@@ -1,0 +1,1 @@
+from app.modules.clientes.model import Cliente
