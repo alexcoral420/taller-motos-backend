@@ -1,0 +1,29 @@
+# ============================================================
+#  Backend Taller de Motos — dependencias
+#  Python 3.11+  |  FastAPI + SQLAlchemy 2.x  |  Supabase (Postgres)
+# ============================================================
+
+# --- Framework web y servidor ASGI ---
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30           # servidor local y en Railway (gunicorn opcional en prod)
+
+# --- Base de datos ---
+sqlalchemy>=2.0,<3.0
+psycopg2-binary>=2.9              # driver Postgres (Supabase). Usar el pooler de Supabase.
+alembic>=1.13                     # migraciones de esquema
+
+# --- Validación / settings ---
+pydantic>=2.7,<3.0
+pydantic-settings>=2.3            # BaseSettings (lee variables de entorno de Railway)
+email-validator>=2.1             # habilita EmailStr en los schemas
+
+# --- Seguridad / auth ---
+python-jose[cryptography]>=3.3    # firmar y verificar JWT
+passlib[bcrypt]>=1.7             # hashing de contraseñas
+python-multipart>=0.0.9          # requerido por el flujo OAuth2 password (login por formulario)
+
+# --- Capa pública (protección anti-abuso) ---
+slowapi>=0.1.9                    # rate limiting por IP en /api/public
+
+# --- Utilidades ---
+python-dotenv>=1.0                # cargar .env en desarrollo local
