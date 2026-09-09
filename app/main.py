@@ -31,6 +31,7 @@ from app.modules.clientes.model import Cliente
 from app.modules.catalogo.model import CatalogoServicio
 from app.modules.cotizaciones.model import Cotizacion, CotizacionItem
 from app.modules.contacto.model import MensajeContacto
+from app.modules.usuarios.model import Usuario
 
 # ----------------------------------------------------------------------------
 #  Rate limiter (capa pública)
@@ -91,5 +92,5 @@ def health():
 app.include_router(public_router, prefix=settings.API_PUBLIC_PREFIX)
 
 # Árbol PRIVADO (paneles internos): se monta cuando lo construyamos.
-# from app.api.private.router import private_router
-# app.include_router(private_router, prefix=settings.API_V1_PREFIX)
+from app.api.private.router import private_router
+app.include_router(private_router, prefix=settings.API_V1_PREFIX)

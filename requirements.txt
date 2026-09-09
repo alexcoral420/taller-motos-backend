@@ -20,6 +20,7 @@ email-validator>=2.1             # habilita EmailStr en los schemas
 # --- Seguridad / auth ---
 python-jose[cryptography]>=3.3    # firmar y verificar JWT
 passlib[bcrypt]>=1.7             # hashing de contraseñas
+bcrypt==4.0.1
 python-multipart>=0.0.9          # requerido por el flujo OAuth2 password (login por formulario)
 
 # --- Capa pública (protección anti-abuso) ---

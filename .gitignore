@@ -55,3 +55,4 @@ Thumbs.db
 logs/
 # Frontend (Node)
 node_modules/
+crear_admin.py
