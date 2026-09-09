@@ -44,7 +44,7 @@ export default function Ordenes() {
         href="/panel/ordenes/nueva"
         className="inline-block mb-4 bg-gray-900 text-white rounded px-4 py-2 text-sm font-medium hover:bg-gray-800"
       >
-        + Nueva orden interna
+        + Nueva orden
       </Link>
 
       {cargando && <p className="text-gray-500">Cargando...</p>}
