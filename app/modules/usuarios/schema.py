@@ -13,7 +13,7 @@ salida).
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.usuarios.model import RolUsuario
 
@@ -23,7 +23,7 @@ from app.modules.usuarios.model import RolUsuario
 # ---------------------------------------------------------------------------
 class UsuarioCreate(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=120)
-    email: EmailStr
+    email: str = Field(..., min_length=1, max_length=120)
     password: str = Field(..., min_length=8, max_length=72)  # entra en claro, se hashea en el service
     rol: RolUsuario = RolUsuario.tecnico
     comision_pct_default: Decimal = Field(default=Decimal("0"), ge=0, le=100)
@@ -32,7 +32,7 @@ class UsuarioCreate(BaseModel):
 class UsuarioUpdate(BaseModel):
     """Actualización parcial. La contraseña es opcional (solo si se cambia)."""
     nombre: str | None = Field(default=None, min_length=1, max_length=120)
-    email: EmailStr | None = None
+    email: str | None = Field(default=None, min_length=1, max_length=120)
     password: str | None = Field(default=None, min_length=8, max_length=72)
     rol: RolUsuario | None = None
     comision_pct_default: Decimal | None = Field(default=None, ge=0, le=100)
@@ -58,8 +58,7 @@ class UsuarioOut(BaseModel):
 #  Login
 # ---------------------------------------------------------------------------
 class LoginRequest(BaseModel):
-    """Credenciales que el usuario envía para autenticarse."""
-    email: EmailStr
+    email: str
     password: str
 
 
