@@ -10,6 +10,7 @@ export default function Navbar() {
     { href: "/", texto: "Servicios" },
     { href: "/cotizar", texto: "Cotizar" },
     { href: "/contacto", texto: "Contacto" },
+    { href: "/panel/login", texto: "Ingresar" },
   ];
 
   return (
