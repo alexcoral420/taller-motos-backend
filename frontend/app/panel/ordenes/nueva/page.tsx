@@ -157,19 +157,22 @@ export default function NuevaOrden() {
 
       <form onSubmit={guardar} className="bg-white rounded-lg shadow p-6 flex flex-col gap-4">
         {/* Placa: obligatoria en interna, opcional en externa */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Placa {tipo === "interno" && "*"}
-          </label>
-          <input
-            type="text"
-            value={placa}
-            onChange={(e) => setPlaca(e.target.value.toUpperCase())}
-            required={tipo === "interno"}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            placeholder="ABC123"
-          />
-        </div>
+        {/* Placa: solo en órdenes internas */}
+  {tipo === "interno" && (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Placa *
+    </label>
+    <input
+      type="text"
+      value={placa}
+      onChange={(e) => setPlaca(e.target.value.toUpperCase())}
+      required
+      className="w-full border border-gray-300 rounded px-3 py-2"
+      placeholder="ABC123"
+      />
+    </div>
+  )}
 
         {/* Campos solo para externa */}
         {tipo === "externo" && (
