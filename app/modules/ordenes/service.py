@@ -126,23 +126,35 @@ class OrdenService:
         self, servicios, tecnico: Usuario
     ) -> tuple[list[OtItem], Decimal]:
         """
-        Valida los servicios contra el catálogo, calcula subtotales con el
-        valor que escribió el técnico y congela la comisión. Devuelve la
-        lista de ítems y el total de mano de obra.
+        Construye los ítems de la orden. Cada servicio puede ser:
+          - Del catálogo: trae 'codigo'. Se valida contra el catálogo.
+          - Libre ("otro"): trae solo 'descripcion'. Se usa tal cual.
+        En ambos casos, el valor lo escribe el técnico y se congela la comisión.
         """
-        codigos = [s.codigo for s in servicios]
-        encontrados = {c.codigo: c for c in self.catalogo_repo.por_codigos(codigos)}
+        # Solo buscamos en el catálogo los que traen código.
+        codigos = [s.codigo for s in servicios if s.codigo]
+        encontrados = {
+            c.codigo: c for c in self.catalogo_repo.por_codigos(codigos)
+        }
 
         items: list[OtItem] = []
         total_mo = Decimal("0")
         comision_pct = tecnico.comision_pct_default or Decimal("0")
 
         for s in servicios:
-            servicio = encontrados.get(s.codigo)
-            if servicio is None or not servicio.activo:
-                raise ServicioInvalido(
-                    f"El servicio '{s.codigo}' no existe o no está activo"
-                )
+            if s.codigo:
+                # --- Servicio del catálogo ---
+                servicio = encontrados.get(s.codigo)
+                if servicio is None or not servicio.activo:
+                    raise ServicioInvalido(
+                        f"El servicio '{s.codigo}' no existe o no está activo"
+                    )
+                catalogo_id = servicio.id
+                descripcion = s.descripcion or servicio.nombre
+            else:
+                # --- Servicio libre ("otro") ---
+                catalogo_id = None
+                descripcion = s.descripcion  # la escribió el técnico
 
             subtotal = (s.valor_unitario * s.cantidad).quantize(Decimal("0.01"))
             comision_valor = (subtotal * comision_pct / Decimal("100")).quantize(
@@ -152,17 +164,20 @@ class OrdenService:
             items.append(
                 OtItem(
                     tipo=TipoItemOt.mano_obra,
-                    catalogo_servicio_id=servicio.id,
+                    catalogo_servicio_id=catalogo_id,   # None si es libre
                     tecnico_id=tecnico.id,
-                    descripcion=s.descripcion or servicio.nombre,
+                    descripcion=descripcion,
                     cantidad=s.cantidad,
-                    valor_unitario=s.valor_unitario,   # valor del técnico
+                    valor_unitario=s.valor_unitario,
                     subtotal=subtotal,
-                    comision_pct=comision_pct,          # congelada
-                    comision_valor=comision_valor,      # congelada
+                    comision_pct=comision_pct,
+                    comision_valor=comision_valor,
                 )
             )
             total_mo += subtotal
+
+        return items, total_mo
+        total_mo += subtotal
 
         return items, total_mo
 

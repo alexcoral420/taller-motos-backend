@@ -16,6 +16,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.modules.ordenes.model import TipoOrden
 
@@ -24,13 +25,18 @@ from app.modules.ordenes.model import TipoOrden
 #  ENTRADA — ítems de servicio (común a ambos tipos)
 # ===========================================================================
 class ServicioItemCreate(BaseModel):
-    # Qué servicio del catálogo es (por su código de negocio).
-    codigo: str = Field(..., min_length=1, max_length=50)
-    # Descripción libre opcional (si el técnico quiere anotar algo).
+    # Del catálogo: viene 'codigo'. Libre ("otro"): viene 'descripcion' sin código.
+    codigo: str | None = Field(default=None, max_length=50)
     descripcion: str | None = Field(default=None, max_length=200)
     cantidad: Decimal = Field(default=Decimal("1"), gt=0, le=999)
-    # VALOR COBRADO por unidad, lo escribe el técnico (negociable).
     valor_unitario: Decimal = Field(..., ge=0)
+
+    @model_validator(mode="after")
+    def validar_codigo_o_descripcion(self):
+        # Debe traer al menos uno: código (catálogo) o descripción (libre).
+        if not self.codigo and not self.descripcion:
+            raise ValueError("El servicio debe tener código o descripción")
+        return self
 
 
 # ===========================================================================

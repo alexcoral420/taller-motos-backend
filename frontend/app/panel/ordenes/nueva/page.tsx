@@ -15,6 +15,10 @@ type Seleccion = {
   codigo: string;
   valor: string;
 };
+type ServicioLibre = {
+  descripcion: string;
+  valor: string;
+};
 
 type TipoOrden = "interno" | "externo";
 
@@ -25,6 +29,7 @@ export default function NuevaOrden() {
 
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [seleccionados, setSeleccionados] = useState<Seleccion[]>([]);
+  const [libres, setLibres] = useState<ServicioLibre[]>([]);
 
   // Campos comunes
   const [placa, setPlaca] = useState("");
@@ -62,21 +67,47 @@ export default function NuevaOrden() {
       actuales.map((s) => (s.codigo === codigo ? { ...s, valor } : s))
     );
   }
+  function agregarLibre() {
+  setLibres((actuales) => [...actuales, { descripcion: "", valor: "" }]);
+}
+
+function quitarLibre(indice: number) {
+  setLibres((actuales) => actuales.filter((_, i) => i !== indice));
+}
+
+function cambiarLibre(indice: number, campo: "descripcion" | "valor", valor: string) {
+  setLibres((actuales) =>
+    actuales.map((l, i) => (i === indice ? { ...l, [campo]: valor } : l))
+  );
+}
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (seleccionados.length === 0) {
-      setError("Agrega al menos un servicio");
-      return;
-    }
+    const libresValidos = libres.filter((l) => l.descripcion.trim() !== "");
 
-    const servicios_payload = seleccionados.map((s) => ({
-      codigo: s.codigo,
+if (seleccionados.length === 0 && libresValidos.length === 0) {
+  setError("Agrega al menos un servicio");
+  return;
+}
+
+    const servicios_payload = [
+  ...seleccionados.map((s) => ({
+    codigo: s.codigo,
+    descripcion: null,
+    cantidad: 1,
+    valor_unitario: Number(s.valor) || 0,
+  })),
+  ...libres
+    .filter((l) => l.descripcion.trim() !== "")
+    .map((l) => ({
+      codigo: null,
+      descripcion: l.descripcion,
       cantidad: 1,
-      valor_unitario: Number(s.valor) || 0,
-    }));
+      valor_unitario: Number(l.valor) || 0,
+    })),
+];
 
     setEnviando(true);
     try {
@@ -266,6 +297,48 @@ export default function NuevaOrden() {
             })}
           </div>
         </div>
+        {/* Servicios libres ("otro") */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Otros servicios (no catalogados)
+  </label>
+
+  {libres.map((libre, i) => (
+    <div key={i} className="flex gap-2 mb-2">
+      <input
+        type="text"
+        value={libre.descripcion}
+        onChange={(e) => cambiarLibre(i, "descripcion", e.target.value)}
+        placeholder="Descripción del servicio"
+        className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+      />
+      <input
+        type="number"
+        value={libre.valor}
+        onChange={(e) => cambiarLibre(i, "valor", e.target.value)}
+        placeholder="Valor"
+        min="0"
+        className="w-28 border border-gray-300 rounded px-3 py-2 text-sm"
+      />
+      <button
+        type="button"
+        onClick={() => quitarLibre(i)}
+        className="px-2 text-red-500 hover:text-red-700"
+        title="Quitar"
+      >
+        ✕
+      </button>
+    </div>
+  ))}
+
+  <button
+    type="button"
+    onClick={agregarLibre}
+    className="text-sm text-blue-600 hover:text-blue-800"
+  >
+    + Agregar otro servicio
+  </button>
+</div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
