@@ -42,14 +42,27 @@ class TipoItemOt(str, enum.Enum):
     mano_obra = "mano_obra"
     repuesto = "repuesto"
 
+class EstadoOrden(str, enum.Enum):
+    """Coincide con el enum 'estado_orden' del esquema SQL."""
+    pendiente = "pendiente"
+    liquidada = "liquidada"
+    anulada = "anulada"
+
 
 class OrdenTrabajo(Base, PKMixin, TimestampMixin):
     __tablename__ = "ordenes_trabajo"
 
     # Consecutivo humano (lo genera la base con IDENTITY).
     numero: Mapped[int] = mapped_column(
-    BigInteger, unique=True, server_default=FetchedValue()
-)
+        BigInteger, unique=True, server_default=FetchedValue()
+    )
+
+    estado: Mapped[EstadoOrden] = mapped_column(
+        SqlEnum(EstadoOrden, name="estado_orden", create_type=False),
+        nullable=False,
+        default=EstadoOrden.pendiente,
+    )
+
 
     tipo: Mapped[TipoOrden] = mapped_column(
         SqlEnum(TipoOrden, name="tipo_orden", create_type=False),

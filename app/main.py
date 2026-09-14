@@ -36,6 +36,7 @@ from app.modules.usuarios.model import Usuario
 from app.modules.ordenes.model import OrdenTrabajo, OtItem
 from app.modules.motos.model import Motocicleta
 from app.modules.inventario.model import Repuesto
+from app.modules.pagos.model import Pago
 
 # ----------------------------------------------------------------------------
 #  Rate limiter (capa pública)

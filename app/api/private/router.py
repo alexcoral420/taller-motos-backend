@@ -14,6 +14,7 @@ from app.api.private import auth_router
 # A medida que los construyamos, se agregan aquí:
 from app.api.private import usuarios_router
 from app.api.private import ordenes_router
+from app.api.private import pagos_router
 # from app.api.private import cotizaciones_router
 # from app.api.private import catalogo_router
 
@@ -22,5 +23,6 @@ private_router = APIRouter()
 private_router.include_router(auth_router.router)
 private_router.include_router(usuarios_router.router)
 private_router.include_router(ordenes_router.router)
+private_router.include_router(pagos_router.router)
 # private_router.include_router(cotizaciones_router.router)
 # private_router.include_router(catalogo_router.router)
