@@ -23,6 +23,16 @@ class Settings(BaseSettings):
         extra="ignore",          # ignora variables de entorno no declaradas aquí
     )
 
+    # ... aquí están tus otros campos (PROJECT_NAME, DATABASE_URL, SECRET_KEY, etc.) ...
+
+    # --- Wompi (pasarela de pagos) ---
+    WOMPI_URL: str = "https://sandbox.wompi.co/v1"
+    WOMPI_PUBLIC_KEY: str = ""
+    WOMPI_PRIVATE_KEY: str = ""
+    WOMPI_EVENTS_KEY: str = ""
+    WOMPI_INTEGRITY_KEY: str = ""
+    
+
     # ------------------------------------------------------------------
     #  Aplicación
     # ------------------------------------------------------------------

@@ -17,10 +17,13 @@ from app.api.private.deps import get_current_user
 from app.core.database import get_db
 from app.modules.pagos.model import MetodoPago
 from app.modules.pagos.service import (
+    DatosClienteIncompletos,
+    ErrorPasarela,
     NoAutorizado,
     OrdenNoEncontrada,
     OrdenNoLiquidable,
     PagoService,
+
 )
 from app.modules.usuarios.model import Usuario
 
@@ -61,4 +64,71 @@ def liquidar_orden(
         monto=str(pago.monto),
         metodo=pago.metodo,
         recibo_token=str(pago.public_token),
+    )
+
+class CobroNequiOut(BaseModel):
+    pago_id: int
+    estado: str
+    referencia: str
+    mensaje: str
+
+
+@router.post("/nequi/cobrar/{orden_id}", response_model=CobroNequiOut)
+def cobrar_nequi(
+    orden_id: int,
+    db: Session = Depends(get_db),
+    tecnico: Usuario = Depends(get_current_user),
+):
+    """
+    Inicia un cobro Nequi: dispara el push al celular del cliente.
+    El pago queda PENDIENTE hasta que el cliente apruebe en su app.
+    """
+    service = PagoService(db)
+    try:
+        pago = service.iniciar_cobro_nequi(orden_id, tecnico)
+    except OrdenNoEncontrada as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except NoAutorizado as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except (OrdenNoLiquidable, DatosClienteIncompletos) as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    except ErrorPasarela as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    return CobroNequiOut(
+        pago_id=pago.id,
+        estado=pago.estado.value,
+        referencia=pago.referencia,
+        mensaje="Se envió la notificación a Nequi. El cliente debe aprobar en su app.",
+    )
+
+
+@router.get("/nequi/estado/{pago_id}", response_model=CobroNequiOut)
+def estado_nequi(
+    pago_id: int,
+    db: Session = Depends(get_db),
+    tecnico: Usuario = Depends(get_current_user),
+):
+    """
+    Consulta si el cliente ya aprobó el cobro Nequi. Actualiza el pago y la
+    orden si fue aprobado.
+    """
+    service = PagoService(db)
+    try:
+        pago = service.confirmar_cobro_nequi(pago_id)
+    except OrdenNoEncontrada as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ErrorPasarela as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    mensajes = {
+        "pendiente": "El cliente aún no ha aprobado el pago.",
+        "confirmado": "¡Pago aprobado! La orden fue liquidada.",
+        "fallido": "El pago fue rechazado o falló.",
+    }
+    return CobroNequiOut(
+        pago_id=pago.id,
+        estado=pago.estado.value,
+        referencia=pago.referencia,
+        mensaje=mensajes.get(pago.estado.value, ""),
     )
