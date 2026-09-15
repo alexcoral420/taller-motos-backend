@@ -66,11 +66,10 @@ def listar_ordenes(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_user),
+    usuario: Usuario = Depends(get_current_user),
 ):
-    """Lista las órdenes de trabajo."""
     service = OrdenService(db)
-    return service.listar(skip=skip, limit=limit)
+    return service.listar(usuario, skip=skip, limit=limit)
 
 
 @router.get("/{orden_id}", response_model=OrdenOut)

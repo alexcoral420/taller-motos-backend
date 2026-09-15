@@ -50,3 +50,18 @@ class OrdenRepository(BaseRepository[OrdenTrabajo]):
     ) -> Sequence[OrdenTrabajo]:
         """Órdenes filtradas por tipo (interno / externo)."""
         return self.list(skip=skip, limit=limit, tipo=tipo)
+
+    def listar_para_usuario(
+        self, usuario, *, skip: int = 0, limit: int = 100
+    ):
+      
+        from app.modules.usuarios.model import RolUsuario
+
+        stmt = select(OrdenTrabajo)
+
+        # El técnico solo ve las suyas; el admin ve todas.
+        if usuario.rol != RolUsuario.administrador:
+            stmt = stmt.where(OrdenTrabajo.tecnico_id == usuario.id)
+
+        stmt = stmt.order_by(OrdenTrabajo.created_at.desc()).offset(skip).limit(limit)
+        return self.db.scalars(stmt).all()

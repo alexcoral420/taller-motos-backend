@@ -112,8 +112,8 @@ class OrdenService:
         return self._persistir(orden)
 
     # ===================== LECTURA (admin/técnico) =====================
-    def listar(self, *, skip: int = 0, limit: int = 100) -> Sequence[OrdenTrabajo]:
-        return self.repo.list(skip=skip, limit=limit)
+    def listar(self, usuario, *, skip: int = 0, limit: int = 100) -> Sequence[OrdenTrabajo]:
+        return self.repo.listar_para_usuario(usuario, skip=skip, limit=limit)
 
     def obtener(self, orden_id: int) -> OrdenTrabajo:
         obj = self.repo.get(orden_id)

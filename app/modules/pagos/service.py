@@ -87,3 +87,29 @@ class PagoService:
         if pago is None:
             raise OrdenNoEncontrada("Recibo no encontrado")
         return pago
+
+    def datos_recibo(self, token) -> dict:
+        """Reúne todos los datos necesarios para el recibo, por su token."""
+        pago = self.repo.por_token(token)
+        if pago is None:
+            raise OrdenNoEncontrada("Recibo no encontrado")
+
+        orden = self.orden_repo.get(pago.orden_id)
+
+        # Nombre del técnico que cobró.
+        from app.modules.usuarios.repository import UsuarioRepository
+        tecnico = UsuarioRepository(self.db).get(pago.tecnico_id) if pago.tecnico_id else None
+
+        # Nombre del cliente (si la orden es externa y tiene cliente).
+        cliente = None
+        if orden and orden.cliente_id:
+            from app.modules.clientes.model import Cliente
+            cliente = self.db.get(Cliente, orden.cliente_id)
+
+        return {
+            "pago": pago,
+            "orden": orden,
+            "tecnico": tecnico,
+            "cliente": cliente,
+            "items": orden.items if orden else [],
+        }

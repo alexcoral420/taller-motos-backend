@@ -27,7 +27,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from app.modules.clientes.model import Cliente
 from app.base.base_model import Base, CreatedAtMixin, PKMixin, TimestampMixin
 
 
@@ -79,6 +79,9 @@ class OrdenTrabajo(Base, PKMixin, TimestampMixin):
     cliente_id: Mapped[int | None] = mapped_column(
         ForeignKey("clientes.id", ondelete="SET NULL")
     )
+
+    cliente: Mapped["Cliente | None"] = relationship("Cliente", lazy="joined")
+
     moto_id: Mapped[int | None] = mapped_column(
         ForeignKey("motocicletas.id", ondelete="SET NULL")
     )

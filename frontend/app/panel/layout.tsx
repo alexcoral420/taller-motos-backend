@@ -18,7 +18,7 @@ export default function PanelLayout({
 
   useEffect(() => {
     if (esLogin) {
-      setVerificando(false); // la página de login no se protege
+      setVerificando(false);
       return;
     }
     if (!estaAutenticado()) {
@@ -41,7 +41,6 @@ export default function PanelLayout({
     );
   }
 
-  // En la página de login, no mostramos la barra del panel.
   if (esLogin) {
     return <>{children}</>;
   }

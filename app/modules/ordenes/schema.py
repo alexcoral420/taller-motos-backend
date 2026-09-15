@@ -79,7 +79,11 @@ class OtItemOut(BaseModel):
     cantidad: Decimal
     valor_unitario: Decimal
     subtotal: Decimal
+class ClienteEnOrden(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
+    nombres: str
+    telefono: str | None = None
 
 class OrdenOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -89,6 +93,7 @@ class OrdenOut(BaseModel):
     tipo: TipoOrden
     placa: str | None
     cliente_id: int | None
+    cliente: ClienteEnOrden | None = None
     tecnico_id: int | None
     sintoma: str | None
     diagnostico: str | None
@@ -98,3 +103,4 @@ class OrdenOut(BaseModel):
     observaciones: str | None
     created_at: datetime
     items: list[OtItemOut] = []
+    estado: str
