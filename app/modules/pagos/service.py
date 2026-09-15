@@ -90,7 +90,7 @@ class PagoService:
         self.db.refresh(pago)
         return pago
 
-    def iniciar_cobro_nequi(self, orden_id: int, tecnico: Usuario) -> Pago:
+    def iniciar_cobro_nequi(self, orden_id: int, tecnico: Usuario, telefono: str | None = None) -> Pago:
         """
         Inicia un cobro Nequi para una orden externa. Crea el pago en estado
         PENDIENTE, dispara el push al celular del cliente vía Wompi, y guarda
@@ -108,13 +108,17 @@ class PagoService:
         if orden.estado == EstadoOrden.liquidada:
             raise OrdenNoLiquidable("La orden ya está liquidada")
 
-        # Necesitamos el teléfono (Nequi) y un email del cliente.
+                # Necesitamos el cliente con su teléfono (o el que confirmó el técnico).
         cliente = orden.cliente
-        if cliente is None or not cliente.telefono:
-            raise DatosClienteIncompletos(
-                "El cliente no tiene teléfono registrado para el cobro Nequi"
-            )
-        telefono = "".join(c for c in cliente.telefono if c.isdigit())[-10:]
+        if cliente is None:
+            raise DatosClienteIncompletos("La orden no tiene cliente")
+
+        # Usar el número Nequi que confirmó el técnico, o el de la orden.
+        numero = telefono or cliente.telefono
+        if not numero:
+            raise DatosClienteIncompletos("No hay número Nequi para el cobro")
+        telefono_limpio = "".join(c for c in numero if c.isdigit())[-10:]
+
         email = cliente.email or "sincorreo@taller.com"
 
         # Referencia única para Wompi (nuestro identificador del cobro).

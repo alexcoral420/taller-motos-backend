@@ -66,6 +66,9 @@ def liquidar_orden(
         recibo_token=str(pago.public_token),
     )
 
+class CobroNequiRequest(BaseModel):
+    telefono: str
+
 class CobroNequiOut(BaseModel):
     pago_id: int
     estado: str
@@ -76,6 +79,7 @@ class CobroNequiOut(BaseModel):
 @router.post("/nequi/cobrar/{orden_id}", response_model=CobroNequiOut)
 def cobrar_nequi(
     orden_id: int,
+    data: CobroNequiRequest,
     db: Session = Depends(get_db),
     tecnico: Usuario = Depends(get_current_user),
 ):
@@ -85,7 +89,7 @@ def cobrar_nequi(
     """
     service = PagoService(db)
     try:
-        pago = service.iniciar_cobro_nequi(orden_id, tecnico)
+        pago = service.iniciar_cobro_nequi(orden_id, tecnico, telefono=data.telefono)
     except OrdenNoEncontrada as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except NoAutorizado as e:
