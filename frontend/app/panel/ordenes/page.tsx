@@ -84,7 +84,7 @@ export default function Ordenes() {
       const data = await res.json();
       const urlRecibo = `${process.env.NEXT_PUBLIC_API_URL}/api/public/recibo/${data.recibo_token}`;
       const telefono = orden.cliente?.telefono?.replace(/\D/g, "") || "";
-      const mensaje = `¡Hola ${orden.cliente?.nombres || ""}! Gracias por tu visita a Taller Universal. Aquí está tu recibo: ${urlRecibo}`;
+      const mensaje = `¡Hola ${orden.cliente?.nombres || ""}! Gracias por tu visita a Taller Surtimotos. Aquí está tu recibo: ${urlRecibo}`;
       if (telefono) {
         window.open(`https://wa.me/57${telefono}?text=${encodeURIComponent(mensaje)}`, "_blank");
       } else {

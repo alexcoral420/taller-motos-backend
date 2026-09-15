@@ -17,7 +17,7 @@ export default function Navbar() {
     <nav className="bg-gray-900 text-white px-6 py-4">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <Link href="/" className="text-xl font-bold" onClick={() => setAbierto(false)}>
-          🏍️ Mi Taller
+          🏍️  Taller Surtimotos
         </Link>
 
         {/* Enlaces en escritorio: ocultos en móvil, visibles desde 'md' */}

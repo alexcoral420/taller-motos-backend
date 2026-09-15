@@ -22,9 +22,9 @@ from app.modules.pagos.service import OrdenNoEncontrada, PagoService
 router = APIRouter(prefix="/recibo", tags=["Recibo (público)"])
 
 # --- Datos fijos del taller ---
-TALLER_NOMBRE = "Taller Universal"
+TALLER_NOMBRE = "Taller Surtimotos"
 TALLER_DIRECCION = "Av 1 de Mayo #29c-35"
-TALLER_TELEFONO = "3204951482"
+TALLER_TELEFONO = "3042827782"
 
 METODOS_LABEL = {
     "efectivo": "Efectivo",
