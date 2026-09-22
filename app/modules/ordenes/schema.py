@@ -104,3 +104,19 @@ class OrdenOut(BaseModel):
     created_at: datetime
     items: list[OtItemOut] = []
     estado: str
+
+class OrdenInternaResumen(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    numero: int
+    total: Decimal
+    sintoma: str | None
+    created_at: datetime
+    items: list[OtItemOut] = []
+
+
+class GastoInternoDetalle(BaseModel):
+    placa: str
+    gasto_interno_total: Decimal
+    cantidad_ordenes: int
+    ordenes: list[OrdenInternaResumen] = []

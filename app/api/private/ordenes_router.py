@@ -23,6 +23,13 @@ from app.modules.ordenes.schema import (
     OrdenInternaCreate,
     OrdenOut,
 )
+from app.modules.ordenes.schema import (
+    GastoInternoDetalle,
+    OrdenExternaCreate,
+    OrdenInternaCreate,
+    OrdenOut,
+)
+
 from app.modules.ordenes.service import (
     OrdenNoEncontrada,
     OrdenService,
@@ -99,3 +106,16 @@ def gasto_interno_placa(
     service = OrdenService(db)
     total = service.repo.gasto_interno_por_placa(placa)
     return {"placa": placa, "gasto_interno": total}
+
+@router.get("/placa/{placa}/gasto-interno-detalle", response_model=GastoInternoDetalle)
+def gasto_interno_detalle(
+    placa: str,
+    db: Session = Depends(get_db),
+    _usuario: Usuario = Depends(get_current_user),
+):
+    """
+    Total + detalle de los servicios internos de una placa.
+    Endpoint pensado para el sistema de compraventa.
+    """
+    service = OrdenService(db)
+    return service.gasto_interno_detalle(placa)

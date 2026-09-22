@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     WOMPI_PRIVATE_KEY: str = ""
     WOMPI_EVENTS_KEY: str = ""
     WOMPI_INTEGRITY_KEY: str = ""
+
+    # --- Integración con sistemas externos (compraventa) ---
+    INTEGRACION_API_KEY: str = ""
     
 
     # ------------------------------------------------------------------

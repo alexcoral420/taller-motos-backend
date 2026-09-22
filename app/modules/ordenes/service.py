@@ -187,3 +187,24 @@ class OrdenService:
         self.db.commit()
         self.db.refresh(orden)
         return orden
+
+    def gasto_interno_detalle(self, placa: str) -> dict:
+        """
+        Devuelve el total gastado en servicios internos de una placa,
+        más el detalle de cada orden interna. Para el sistema de compraventa.
+        """
+        from app.modules.ordenes.model import TipoOrden
+
+        # Todas las órdenes internas de esa placa.
+        ordenes = [
+            o for o in self.repo.por_placa(placa, limit=1000)
+            if o.tipo == TipoOrden.interno
+        ]
+        total = sum((o.total for o in ordenes), Decimal("0"))
+
+        return {
+            "placa": placa,
+            "gasto_interno_total": total,
+            "cantidad_ordenes": len(ordenes),
+            "ordenes": ordenes,
+        }

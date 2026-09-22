@@ -99,3 +99,7 @@ app.include_router(public_router, prefix=settings.API_PUBLIC_PREFIX)
 # Árbol PRIVADO (paneles internos): se monta cuando lo construyamos.
 from app.api.private.router import private_router
 app.include_router(private_router, prefix=settings.API_V1_PREFIX)
+
+# Árbol de INTEGRACIÓN (sistemas externos): autenticado por API Key.
+from app.api.integracion.router import router as integracion_router
+app.include_router(integracion_router, prefix="/api")
