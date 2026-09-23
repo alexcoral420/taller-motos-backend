@@ -7,13 +7,19 @@ en taller (servicios INTERNOS) por placa de moto.
 """
 
 from collections.abc import Sequence
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import Row, func, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.base.base_repository import BaseRepository
-from app.modules.ordenes.model import OrdenTrabajo, TipoOrden
+from app.modules.ordenes.model import EstadoOrden, OrdenTrabajo, TipoOrden
+from app.modules.usuarios.model import Usuario
+
+# Hora de Colombia (UTC-5, sin horario de verano). Los días del reporte se
+# cortan a medianoche local, no a medianoche UTC.
+ZONA_TALLER = timezone(timedelta(hours=-5))
 
 
 class OrdenRepository(BaseRepository[OrdenTrabajo]):
@@ -65,3 +71,43 @@ class OrdenRepository(BaseRepository[OrdenTrabajo]):
 
         stmt = stmt.order_by(OrdenTrabajo.created_at.desc()).offset(skip).limit(limit)
         return self.db.scalars(stmt).all()
+
+    def reporte(
+        self,
+        *,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+        tecnico_id: int | None = None,
+        tipo: TipoOrden | None = None,
+        estado: EstadoOrden | None = None,
+    ) -> Sequence[Row[tuple[OrdenTrabajo, str | None]]]:
+        """
+        Órdenes para el reporte del admin, junto al nombre del técnico.
+        Solo aplica los filtros que vienen (None = sin filtrar). El rango de
+        fechas es inclusivo en ambos extremos. Más recientes primero.
+        """
+        stmt = (
+            select(OrdenTrabajo, Usuario.nombre)
+            .outerjoin(Usuario, Usuario.id == OrdenTrabajo.tecnico_id)
+            # Los ítems en una sola consulta extra (evita una por orden).
+            .options(selectinload(OrdenTrabajo.items))
+        )
+
+        if fecha_desde is not None:
+            inicio = datetime.combine(fecha_desde, time.min, tzinfo=ZONA_TALLER)
+            stmt = stmt.where(OrdenTrabajo.created_at >= inicio)
+        if fecha_hasta is not None:
+            # Inclusivo: todo el día 'fecha_hasta', hasta antes de la medianoche siguiente.
+            fin = datetime.combine(
+                fecha_hasta + timedelta(days=1), time.min, tzinfo=ZONA_TALLER
+            )
+            stmt = stmt.where(OrdenTrabajo.created_at < fin)
+        if tecnico_id is not None:
+            stmt = stmt.where(OrdenTrabajo.tecnico_id == tecnico_id)
+        if tipo is not None:
+            stmt = stmt.where(OrdenTrabajo.tipo == tipo)
+        if estado is not None:
+            stmt = stmt.where(OrdenTrabajo.estado == estado)
+
+        stmt = stmt.order_by(OrdenTrabajo.created_at.desc())
+        return self.db.execute(stmt).all()

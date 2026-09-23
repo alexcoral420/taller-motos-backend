@@ -18,7 +18,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.modules.ordenes.model import TipoOrden
+from app.modules.ordenes.model import EstadoOrden, TipoOrden
 
 
 # ===========================================================================
@@ -120,3 +120,36 @@ class GastoInternoDetalle(BaseModel):
     gasto_interno_total: Decimal
     cantidad_ordenes: int
     ordenes: list[OrdenInternaResumen] = []
+
+
+# ===========================================================================
+#  SALIDA — reporte de órdenes (solo admin)
+# ===========================================================================
+class ReporteOrdenFila(BaseModel):
+    numero: int
+    tipo: TipoOrden
+    fecha: datetime
+    tecnico: str | None          # nombre; None si el técnico ya no existe
+    placa: str | None
+    cliente: str | None          # nombre; None en las internas
+    total: Decimal
+    estado: EstadoOrden
+    sintoma: str | None
+    items: list[OtItemOut] = []  # servicios, para el detalle expandido
+
+
+class ResumenPorTipo(BaseModel):
+    cantidad: int = 0
+    total: Decimal = Decimal("0")
+
+
+class ReporteResumen(BaseModel):
+    cantidad_ordenes: int
+    total: Decimal
+    interno: ResumenPorTipo
+    externo: ResumenPorTipo
+
+
+class ReporteOrdenes(BaseModel):
+    ordenes: list[ReporteOrdenFila]
+    resumen: ReporteResumen

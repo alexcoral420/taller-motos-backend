@@ -1,8 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { fetchAuth } from "@/app/lib/auth";
 
 export default function Panel() {
+  const [esAdmin, setEsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetchAuth("/api/v1/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((yo) => setEsAdmin(yo?.rol === "administrador"))
+      .catch(() => setEsAdmin(false));
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Inicio</h1>
@@ -27,6 +39,18 @@ export default function Panel() {
             Leads desde la web
           </p>
         </Link>
+
+        {esAdmin && (
+          <Link
+            href="/panel/reportes"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+          >
+            <h2 className="font-semibold text-gray-800">Reportes</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Órdenes y totales por periodo
+            </p>
+          </Link>
+        )}
       </div>
     </div>
   );

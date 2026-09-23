@@ -18,6 +18,7 @@ En ambas:
 """
 
 from collections.abc import Sequence
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -25,13 +26,22 @@ from sqlalchemy.orm import Session
 from app.modules.catalogo.repository import CatalogoRepository
 from app.modules.clientes.model import Cliente, OrigenCliente
 from app.modules.ordenes.model import (
+    EstadoOrden,
     OrdenTrabajo,
     OtItem,
     TipoItemOt,
     TipoOrden,
 )
 from app.modules.ordenes.repository import OrdenRepository
-from app.modules.ordenes.schema import OrdenExternaCreate, OrdenInternaCreate
+from app.modules.ordenes.schema import (
+    OrdenExternaCreate,
+    OrdenInternaCreate,
+    OtItemOut,
+    ReporteOrdenes,
+    ReporteOrdenFila,
+    ReporteResumen,
+    ResumenPorTipo,
+)
 from app.modules.usuarios.model import Usuario
 
 
@@ -48,6 +58,10 @@ class ServicioInvalido(OrdenError):
 
 class OrdenNoEncontrada(OrdenError):
     pass
+
+
+class RangoFechasInvalido(OrdenError):
+    """fecha_desde es posterior a fecha_hasta."""
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +134,65 @@ class OrdenService:
         if obj is None:
             raise OrdenNoEncontrada(f"No existe la orden id={orden_id}")
         return obj
+
+    # ===================== REPORTE (solo admin) =====================
+    def reporte(
+        self,
+        *,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+        tecnico_id: int | None = None,
+        tipo: TipoOrden | None = None,
+        estado: EstadoOrden | None = None,
+    ) -> ReporteOrdenes:
+        """Órdenes filtradas + resumen (cantidad y total, global y por tipo)."""
+        if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+            raise RangoFechasInvalido(
+                "La fecha 'desde' no puede ser posterior a la fecha 'hasta'"
+            )
+
+        filas = self.repo.reporte(
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            tecnico_id=tecnico_id,
+            tipo=tipo,
+            estado=estado,
+        )
+
+        ordenes: list[ReporteOrdenFila] = []
+        por_tipo = {t: ResumenPorTipo() for t in TipoOrden}
+        for orden, tecnico_nombre in filas:
+            cliente = None
+            if orden.cliente is not None:
+                cliente = " ".join(
+                    p for p in (orden.cliente.nombres, orden.cliente.apellidos) if p
+                )
+            ordenes.append(
+                ReporteOrdenFila(
+                    numero=orden.numero,
+                    tipo=orden.tipo,
+                    fecha=orden.created_at,
+                    tecnico=tecnico_nombre,
+                    placa=orden.placa,
+                    cliente=cliente,
+                    total=orden.total,
+                    estado=orden.estado,
+                    sintoma=orden.sintoma,
+                    items=[OtItemOut.model_validate(i) for i in orden.items],
+                )
+            )
+            por_tipo[orden.tipo].cantidad += 1
+            por_tipo[orden.tipo].total += orden.total
+
+        return ReporteOrdenes(
+            ordenes=ordenes,
+            resumen=ReporteResumen(
+                cantidad_ordenes=len(ordenes),
+                total=sum((o.total for o in ordenes), Decimal("0")),
+                interno=por_tipo[TipoOrden.interno],
+                externo=por_tipo[TipoOrden.externo],
+            ),
+        )
 
     # ===================== HELPERS INTERNOS =====================
     def _construir_items(

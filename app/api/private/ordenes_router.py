@@ -9,15 +9,19 @@ Rutas finales (se monta bajo /api/v1):
     POST /api/v1/ordenes/interna    -> registrar orden interna (rápida)
     POST /api/v1/ordenes/externa    -> registrar orden externa (completa)
     GET  /api/v1/ordenes            -> listar órdenes
+    GET  /api/v1/ordenes/reporte    -> reporte filtrado + resumen (solo admin)
     GET  /api/v1/ordenes/{id}       -> ver una orden
     GET  /api/v1/ordenes/placa/{placa}/gasto-interno -> gasto interno por placa
 """
 
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.private.deps import get_current_user
+from app.api.private.deps import get_current_user, require_admin
 from app.core.database import get_db
+from app.modules.ordenes.model import EstadoOrden, TipoOrden
 from app.modules.ordenes.schema import (
     OrdenExternaCreate,
     OrdenInternaCreate,
@@ -28,11 +32,13 @@ from app.modules.ordenes.schema import (
     OrdenExternaCreate,
     OrdenInternaCreate,
     OrdenOut,
+    ReporteOrdenes,
 )
 
 from app.modules.ordenes.service import (
     OrdenNoEncontrada,
     OrdenService,
+    RangoFechasInvalido,
     ServicioInvalido,
 )
 from app.modules.usuarios.model import Usuario
@@ -77,6 +83,31 @@ def listar_ordenes(
 ):
     service = OrdenService(db)
     return service.listar(usuario, skip=skip, limit=limit)
+
+
+# Va antes de /{orden_id}: si no, "reporte" se intentaría leer como id.
+@router.get("/reporte", response_model=ReporteOrdenes)
+def reporte_ordenes(
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    tecnico_id: int | None = None,
+    tipo: TipoOrden | None = None,
+    estado: EstadoOrden | None = None,
+    db: Session = Depends(get_db),
+    _admin: Usuario = Depends(require_admin),   # solo admin
+):
+    """Reporte de órdenes con filtros opcionales, más su resumen por tipo."""
+    service = OrdenService(db)
+    try:
+        return service.reporte(
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            tecnico_id=tecnico_id,
+            tipo=tipo,
+            estado=estado,
+        )
+    except RangoFechasInvalido as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
 
 @router.get("/{orden_id}", response_model=OrdenOut)
