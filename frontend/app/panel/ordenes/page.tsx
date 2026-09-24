@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { fetchAuth } from "@/app/lib/auth";
 
@@ -36,13 +36,7 @@ export default function Ordenes() {
   const [liquidando, setLiquidando] = useState<number | null>(null);
   const [metodo, setMetodo] = useState("efectivo");
   const [procesando, setProcesando] = useState(false);
-
-  // Cobro Nequi (digital)
-  const [cobrandoNequi, setCobrandoNequi] = useState<number | null>(null);
-  const [numeroNequi, setNumeroNequi] = useState("");
-  const [estadoNequi, setEstadoNequi] = useState<string>("");
-  const [pagoNequiId, setPagoNequiId] = useState<number | null>(null);
-  const intervalo = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [mensaje, setMensaje] = useState<string | null>(null);
 
   function cargarOrdenes() {
     fetchAuth("/api/v1/ordenes")
@@ -62,11 +56,14 @@ export default function Ordenes() {
 
   useEffect(() => {
     cargarOrdenes();
-    // Limpia el intervalo si el componente se desmonta.
-    return () => {
-      if (intervalo.current) clearInterval(intervalo.current);
-    };
   }, []);
+
+  // Oculta el mensaje de éxito después de unos segundos.
+  useEffect(() => {
+    if (!mensaje) return;
+    const t = setTimeout(() => setMensaje(null), 3000);
+    return () => clearTimeout(t);
+  }, [mensaje]);
 
   // ---------- Liquidación manual ----------
   async function confirmarLiquidacion(orden: Orden) {
@@ -81,89 +78,14 @@ export default function Ordenes() {
         const err = await res.json();
         throw new Error(err.detail || "No se pudo liquidar");
       }
-      const data = await res.json();
-      const urlRecibo = `${process.env.NEXT_PUBLIC_API_URL}/api/public/recibo/${data.recibo_token}`;
-      const telefono = orden.cliente?.telefono?.replace(/\D/g, "") || "";
-      const mensaje = `¡Hola ${orden.cliente?.nombres || ""}! Gracias por tu visita a Taller Surtimotos. Aquí está tu recibo: ${urlRecibo}`;
-      if (telefono) {
-        window.open(`https://wa.me/57${telefono}?text=${encodeURIComponent(mensaje)}`, "_blank");
-      } else {
-        alert("Orden liquidada. Recibo: " + urlRecibo);
-      }
       setLiquidando(null);
+      setMensaje("Orden liquidada ✓");
       cargarOrdenes();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Error al liquidar");
     } finally {
       setProcesando(false);
     }
-  }
-
-  // ---------- Cobro Nequi digital ----------
-  function abrirCobroNequi(orden: Orden) {
-    setCobrandoNequi(orden.id);
-    // Prellenamos con el teléfono de la orden, pero el técnico puede editarlo.
-    setNumeroNequi(orden.cliente?.telefono?.replace(/\D/g, "").slice(-10) || "");
-    setEstadoNequi("");
-    setPagoNequiId(null);
-  }
-
-  async function iniciarCobroNequi(orden: Orden) {
-    setProcesando(true);
-    setEstadoNequi("Enviando notificación a Nequi...");
-    try {
-      // Enviamos el número editado como query (el backend puede usarlo).
-      const res = await fetchAuth(`/api/v1/pagos/nequi/cobrar/${orden.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telefono: numeroNequi }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "No se pudo iniciar el cobro");
-      }
-      const data = await res.json();
-      setPagoNequiId(data.pago_id);
-      setEstadoNequi("Esperando que el cliente apruebe en su Nequi...");
-
-      // Consultamos el estado cada 4 segundos.
-      intervalo.current = setInterval(() => consultarEstadoNequi(data.pago_id), 4000);
-    } catch (err) {
-      setEstadoNequi("");
-      alert(err instanceof Error ? err.message : "Error al iniciar el cobro");
-    } finally {
-      setProcesando(false);
-    }
-  }
-
-  async function consultarEstadoNequi(pagoId: number) {
-    try {
-      const res = await fetchAuth(`/api/v1/pagos/nequi/estado/${pagoId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-
-      if (data.estado === "confirmado") {
-        if (intervalo.current) clearInterval(intervalo.current);
-        setEstadoNequi("¡Pago aprobado! ✓");
-        setTimeout(() => {
-          setCobrandoNequi(null);
-          cargarOrdenes();
-        }, 1500);
-      } else if (data.estado === "fallido") {
-        if (intervalo.current) clearInterval(intervalo.current);
-        setEstadoNequi("El pago fue rechazado ✗");
-      }
-      // Si sigue pendiente, el intervalo vuelve a consultar.
-    } catch {
-      // Ignoramos errores puntuales de red; el intervalo reintenta.
-    }
-  }
-
-  function cancelarCobroNequi() {
-    if (intervalo.current) clearInterval(intervalo.current);
-    setCobrandoNequi(null);
-    setEstadoNequi("");
-    setPagoNequiId(null);
   }
 
   return (
@@ -176,6 +98,12 @@ export default function Ordenes() {
       >
         + Nueva orden
       </Link>
+
+      {mensaje && (
+        <p className="mb-4 bg-green-50 text-green-700 rounded px-4 py-2 text-sm font-medium">
+          {mensaje}
+        </p>
+      )}
 
       {cargando && <p className="text-gray-500">Cargando...</p>}
       {error && <p className="text-red-500">{error}</p>}
@@ -236,72 +164,19 @@ export default function Ordenes() {
                         disabled={procesando}
                         className="bg-green-600 text-white rounded px-3 py-1 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                       >
-                        {procesando ? "Procesando..." : "Confirmar y enviar recibo"}
+                        {procesando ? "Procesando..." : "Confirmar liquidación"}
                       </button>
                       <button onClick={() => setLiquidando(null)} className="text-sm text-gray-500">
                         Cancelar
                       </button>
                     </div>
-                  ) : cobrandoNequi === orden.id ? (
-                    /* Panel de cobro Nequi digital */
-                    <div className="bg-purple-50 rounded p-3">
-                      {!pagoNequiId ? (
-                        <>
-                          <label className="block text-sm text-gray-700 mb-1">
-                            Número Nequi del cliente
-                          </label>
-                          <input
-                            type="tel"
-                            value={numeroNequi}
-                            onChange={(e) => setNumeroNequi(e.target.value.replace(/\D/g, ""))}
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-2"
-                            placeholder="3001234567"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => iniciarCobroNequi(orden)}
-                              disabled={procesando || numeroNequi.length < 10}
-                              className="bg-purple-600 text-white rounded px-3 py-1 text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
-                            >
-                              Enviar cobro
-                            </button>
-                            <button onClick={cancelarCobroNequi} className="text-sm text-gray-500">
-                              Cancelar
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm">
-                          <p className="font-medium text-purple-700">{estadoNequi}</p>
-                          {estadoNequi.includes("Esperando") && (
-                            <p className="text-gray-500 mt-1">
-                              Pídele al cliente que abra su app Nequi y apruebe.
-                            </p>
-                          )}
-                          {estadoNequi.includes("rechazado") && (
-                            <button onClick={cancelarCobroNequi} className="text-gray-500 mt-2">
-                              Cerrar
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
                   ) : (
-                    /* Botones iniciales */
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setLiquidando(orden.id); setMetodo("efectivo"); }}
-                        className="bg-gray-900 text-white rounded px-3 py-1 text-sm font-medium hover:bg-gray-800"
-                      >
-                        Liquidar manual
-                      </button>
-                      <button
-                        onClick={() => abrirCobroNequi(orden)}
-                        className="bg-purple-600 text-white rounded px-3 py-1 text-sm font-medium hover:bg-purple-700"
-                      >
-                        Cobrar con Nequi
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => { setLiquidando(orden.id); setMetodo("efectivo"); }}
+                      className="bg-gray-900 text-white rounded px-3 py-1 text-sm font-medium hover:bg-gray-800"
+                    >
+                      Liquidar manual
+                    </button>
                   )}
                 </div>
               )}
