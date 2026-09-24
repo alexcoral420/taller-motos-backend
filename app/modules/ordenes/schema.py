@@ -148,6 +148,11 @@ class ReporteResumen(BaseModel):
     total: Decimal
     interno: ResumenPorTipo
     externo: ResumenPorTipo
+    # Cobros (pagos confirmados) de las órdenes filtradas, por método.
+    cobrado_efectivo: Decimal = Decimal("0")
+    cobrado_nequi: Decimal = Decimal("0")
+    cobrado_otros: Decimal = Decimal("0")       # daviplata + breve
+    pendiente_cobro: Decimal = Decimal("0")     # externas aún sin liquidar
 
 
 class ReporteOrdenes(BaseModel):

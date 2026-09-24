@@ -33,6 +33,8 @@ from app.modules.ordenes.model import (
     TipoOrden,
 )
 from app.modules.ordenes.repository import OrdenRepository
+from app.modules.pagos.model import MetodoPago
+from app.modules.pagos.repository import PagoRepository
 from app.modules.ordenes.schema import (
     OrdenExternaCreate,
     OrdenInternaCreate,
@@ -72,6 +74,7 @@ class OrdenService:
         self.db = db
         self.repo = OrdenRepository(db)
         self.catalogo_repo = CatalogoRepository(db)
+        self.pago_repo = PagoRepository(db)
 
     # ===================== ORDEN INTERNA =====================
     def crear_interna(
@@ -145,7 +148,10 @@ class OrdenService:
         tipo: TipoOrden | None = None,
         estado: EstadoOrden | None = None,
     ) -> ReporteOrdenes:
-        """Órdenes filtradas + resumen (cantidad y total, global y por tipo)."""
+        """
+        Órdenes filtradas + resumen: cantidad y total (global y por tipo),
+        lo cobrado por método de pago y lo pendiente de cobro.
+        """
         if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
             raise RangoFechasInvalido(
                 "La fecha 'desde' no puede ser posterior a la fecha 'hasta'"
@@ -161,6 +167,7 @@ class OrdenService:
 
         ordenes: list[ReporteOrdenFila] = []
         por_tipo = {t: ResumenPorTipo() for t in TipoOrden}
+        pendiente_cobro = Decimal("0")
         for orden, tecnico_nombre in filas:
             cliente = None
             if orden.cliente is not None:
@@ -183,6 +190,12 @@ class OrdenService:
             )
             por_tipo[orden.tipo].cantidad += 1
             por_tipo[orden.tipo].total += orden.total
+            # Solo las externas se cobran; las internas son costo del taller.
+            if orden.tipo == TipoOrden.externo and orden.estado == EstadoOrden.pendiente:
+                pendiente_cobro += orden.total
+
+        cobrado = self.pago_repo.cobrado_por_metodo([orden.id for orden, _ in filas])
+        cero = Decimal("0")
 
         return ReporteOrdenes(
             ordenes=ordenes,
@@ -191,6 +204,11 @@ class OrdenService:
                 total=sum((o.total for o in ordenes), Decimal("0")),
                 interno=por_tipo[TipoOrden.interno],
                 externo=por_tipo[TipoOrden.externo],
+                cobrado_efectivo=cobrado.get(MetodoPago.efectivo, cero),
+                cobrado_nequi=cobrado.get(MetodoPago.nequi, cero),
+                cobrado_otros=cobrado.get(MetodoPago.daviplata, cero)
+                + cobrado.get(MetodoPago.breve, cero),
+                pendiente_cobro=pendiente_cobro,
             ),
         )
 

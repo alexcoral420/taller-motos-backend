@@ -43,6 +43,10 @@ type Reporte = {
     total: string;
     interno: ResumenTipo;
     externo: ResumenTipo;
+    cobrado_efectivo: string;
+    cobrado_nequi: string;
+    cobrado_otros: string;
+    pendiente_cobro: string;
   };
 };
 
@@ -354,6 +358,28 @@ export default function Reportes() {
               {resumen.interno.cantidad} {resumen.interno.cantidad === 1 ? "orden" : "órdenes"} · costo
             </p>
           </div>
+
+          {/* Desglose de cobros por método */}
+          <dl className="sm:col-span-3 border-t border-gray-200 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <div>
+              <dt className="text-gray-500">Cobrado en efectivo</dt>
+              <dd className="font-semibold text-gray-800">{pesos(resumen.cobrado_efectivo)}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500">Cobrado en Nequi</dt>
+              <dd className="font-semibold text-gray-800">{pesos(resumen.cobrado_nequi)}</dd>
+            </div>
+            {Number(resumen.cobrado_otros) > 0 && (
+              <div>
+                <dt className="text-gray-500">Otros</dt>
+                <dd className="font-semibold text-gray-800">{pesos(resumen.cobrado_otros)}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-gray-500">Pendiente de cobro</dt>
+              <dd className="font-semibold text-amber-700">{pesos(resumen.pendiente_cobro)}</dd>
+            </div>
+          </dl>
         </div>
       )}
 
